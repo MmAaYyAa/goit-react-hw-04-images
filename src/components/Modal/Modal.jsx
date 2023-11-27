@@ -1,4 +1,4 @@
-import {useEffect } from 'react';
+import {useEffect,useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Overlay, ModalStyled } from './Modal.styled';
 
@@ -12,11 +12,12 @@ export default function Modal ({largeImageURL,onClose,tags}) {
   //   document.removeEventListener('keydown', this.handleEscape);
   // }
 
-  const handleEscape = event => {
+  const handleEscape = useCallback (event => {
     if (event.code === 'Escape') {
       onClose();
     }
-  };
+  },[onClose]
+  );
 
   const handleBackdropClick = event => {
     if (event.currentTarget === event.target) {
