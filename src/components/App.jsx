@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useState,useEffect } from 'react';
 import Searchbar from './Searchbar/Searchbar';
 import ImageGallery from './ImageGallery/ImageGallery';
 import { serviceGetPhotos } from 'api/api';
@@ -7,106 +7,89 @@ import Modal from './Modal/Modal';
 import Button from './Button/Button';
 import { Notify } from 'notiflix/build/notiflix-notify-aio';
 import StyledApp from 'App.styled';
-export default class App extends Component {
-  state = {
-    searchQuery: '',
-    gallery: [],
-    currentPage: 1,
-    quantityPages: null,
-    error: null,
-    isLoading: false,
-    showModal: false,
-    largeImageURL: null,
-    tags: null,
-  };
 
-  componentDidUpdate(_, prevState) {
-    if (
-      prevState.currentPage !== this.state.currentPage ||
-      prevState.searchQuery !== this.state.searchQuery
-    ) {
-      this.fetchGallery();
+export default function App () {
+
+  const[searchQuery,setSearchQuery] =useState('');
+  const[gallery,setGallery]= useState([]);
+  const[currentPage,setCurrentPage]=useState(1);
+  const[quantityPages,setQuantityPages]=useState(null);
+  const[error,setError]=useState(null);
+  const[isLoading,setIsLoading]=useState(false);
+  const[showModal,setShowModal]=useState(false);
+  const[largeImageURL,setLargeImageURL]=useState(null);
+  const[tags,setTags]=useState(null);
+
+  useEffect(()=>{
+    if(!searchQuery ){
+      return;
     }
-  }
-
-  fetchGallery = async () => {
-    this.setState({ isLoading: true });
-    try {
-      const { hits, totalHits } = await serviceGetPhotos(
-        this.state.searchQuery,
-        this.state.currentPage
-      );
-      if (!hits.length) {
-        Notify.failure('Sorry,no images found.Please,try again.');
-        return;
+    const fetchGallery = async () => {
+      setIsLoading(true);
+      try {
+        const { hits, totalHits } = await serviceGetPhotos(
+          searchQuery,
+          currentPage
+        );
+        if (!hits.length) {
+          Notify.failure('Sorry,no images found.Please,try again.');
+          return;
+        }
+        if (hits.length > 0) {
+            setGallery(prev=>[ ...prev,...hits]);
+            setQuantityPages(Math.ceil(totalHits / 12));
+          }
+      } catch (error) {
+        setError(error.message);
+      } finally {
+        setIsLoading(false);
       }
-      if (hits.length > 0) {
-        this.setState(prev => ({
-          gallery: [...prev.gallery, ...hits],
-          quantityPages: Math.ceil(totalHits / 12),
-        }));
-      }
-    } catch (error) {
-      this.setState({ error: error.message });
-    } finally {
-      this.setState({ isLoading: false });
-    }
+    };
+    fetchGallery();
+    },[currentPage,searchQuery]);
+
+  const handleFormSubmit = searchQuery => {
+      setCurrentPage(1);
+      setQuantityPages(null);
+      setGallery([]);
+      setError(null);
+      setSearchQuery(searchQuery);
   };
 
-  handleFormSubmit = searchQuery => {
-    this.setState({
-      currentPage: 1,
-      quantityPages: null,
-      gallery: [],
-      error: null,
-      searchQuery,
-    });
+  const handleModal = obj => {
+    setIsLoading(false);
+     setShowModal(true);
+     setLargeImageURL(obj.largeImageURL);
+     setTags(obj.tags);
   };
 
-  handleModal = obj => {
-    this.setState({ isLoading: true, showModal: true, ...obj });
+  const onClose = () => {
+    setIsLoading(false);
+     setShowModal(false);
   };
 
-  onClose = () => {
-    this.setState({ isLoading: false, showModal: false });
+  const handleBtnLoad = () => {
+   setCurrentPage(prev=>prev + 1);
   };
 
-  handleBtnLoad = () => {
-    this.setState(prev => ({
-      currentPage: prev.currentPage + 1,
-    }));
-  };
-
-  render() {
-    const {
-      gallery,
-      error,
-      isLoading,
-      showModal,
-      largeImageURL,
-      tags,
-      currentPage,
-      quantityPages,
-    } = this.state;
     return (
       <StyledApp>
-        <Searchbar onSubmit={this.handleFormSubmit}></Searchbar>
+        <Searchbar onSubmit={handleFormSubmit}></Searchbar>
         {isLoading && <Loader />}
         {error && Notify.failure(error)}
         {gallery && gallery.length > 0 && (
-          <ImageGallery hits={gallery} onClick={this.handleModal} />
+          <ImageGallery hits={gallery} onClick={handleModal} />
         )}
         {currentPage < quantityPages && (
-          <Button handleBtnLoad={this.handleBtnLoad} />
+          <Button handleBtnLoad={handleBtnLoad} />
         )}
         {showModal && (
           <Modal
             largeImageURL={largeImageURL}
             tags={tags}
-            onClose={this.onClose}
+            onClose={onClose}
           />
         )}
       </StyledApp>
     );
-  }
 }
