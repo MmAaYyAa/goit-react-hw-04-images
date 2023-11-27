@@ -29,7 +29,7 @@ export default function Modal ({largeImageURL,onClose,tags}) {
     return ()=>{
       document.removeEventListener('keydown', handleEscape);
     };
-  },[]);
+  },[handleEscape]);
     
     return createPortal(
       <Overlay onClick={handleBackdropClick}>
